@@ -2,7 +2,7 @@
 ; history
 ; 2022.02.13    k.u.    corsor + button type
 
-PRO MCURSOR, x, y, change=change, down=down, nowait=nowait, up=up, wait=wait, data=data, device=device, normal=normal, button=button
+PRO BCURSOR, x, y, change=change, down=down, nowait=nowait, up=up, wait=wait, data=data, device=device, normal=normal, button=button
 
     CURSOR, x, y, change=change, down=down, nowait=nowait, up=up, wait=wait, data=data, device=device, normal=normal
 
