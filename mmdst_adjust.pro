@@ -595,8 +595,8 @@ dmy=widget_base(b1, /row, /NonExclusive)
 wd.Icrtk = Widget_Button(dmy, Value='CorrIcrtk')
 Widget_Control, wd.Icrtk, Set_Button=conf.sconf.corr_Icrtk
 wd.Auto = widget_button(b1, value="Auto", uvalue = "Auto", SENSITIVE = 0)
-wd.SFit = widget_button(b1, value="SFit", uvalue = "SFit")
-wd.Disp = widget_button(b1, value="Disp", uvalue = "Disp")
+wd.SFit = widget_button(b1, value="SFit", uvalue = "SFit", SENSITIVE = 0)
+wd.Disp = widget_button(b1, value="Disp", uvalue = "Disp", SENSITIVE = 0)
 wd.Exit = widget_button(b1, value="Exit", uvalue = "Exit")
 
 widget_control, base, /realize
@@ -617,3 +617,4 @@ wl0 = 10830
 pcal = mmdst_adjust(s[*,*,0:3], dst, wl0, bin=1)
 
 END
+
