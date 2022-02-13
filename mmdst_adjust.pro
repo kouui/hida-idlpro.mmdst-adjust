@@ -11,28 +11,12 @@
 ;------------------------------------------------------------------------
 ;; color reference : https://www.scollabo.com/banban/lectur/websafe.html
 ;; external dependency
-@mmdst
-@dst_pollib
+;@mmdst
+;@dst_pollib
 @mmdst_lib
 @quv_symfit
 @mmdsttxt
 
-
-;------------------------------------------------------------------------
-;; UPDATE PROFILES
-;; s0 (1, npix_y, 4), 4 : I,Q,U,V
-;FUNCTION update_profiles, s0, mm
-;  
-;   rmm = invert(mm)
-;   ss = size(s0)
-;   ny = ss[2]
-;   s3 = fltarr(1,ny,ss[3])
-;   for j=0,3 do begin
-;		s3[*,*,j] = rmm[0,j]*s0[*,*,0]		
-;             for i=1,3 do s3[*,*,j] = s3[*,*,j] + rmm[i,j]*s0[*,*,i]
-;	endfor
-;   return, s3
-;END
 
 ;------------------------------------------------------------------------
 ;; UPDATE PROFILE PLOTS
@@ -78,10 +62,10 @@ PRO update_profile_plots, wl, profs, wid, init=init, s0=s0, s2=s2
           plot,wl,prof,pos=box+yoff*(0.1+wy1*(3-i)),/norm,xtickname=xtickname, chars=cs,xstyle=1,yr=yr,ystyle=1,/noerase
           oplot,[wl[0],wl[-1]],[0,0],linestyle=1
       endelse
-      if keyword_set(s0) then oplot, wl, s0[0,*,i], color=color_fix, linestyle=2
-      if keyword_set(s2) and (not keyword_set(init)) then oplot, wl, s2[0,*,i], color=color_fix
+      if keyword_set(s0) then oplot, wl, s0[0,*,i], color=color_fix, linestyle=0
+      if keyword_set(s2) and (not keyword_set(init)) then oplot, wl, s2[0,*,i], color=color_fix, linestyle=2
       ytext = yr[1]*0.6
-      xyouts,wl[0],ytext,labels[i],/data,chars=2.5
+      xyouts,wl[-1],ytext,labels[i],/data,chars=2.5
    endfor
    
 
@@ -89,140 +73,12 @@ PRO update_profile_plots, wl, profs, wid, init=init, s0=s0, s2=s2
 END
 
 ;------------------------------------------------------------------------
-;; RETURN CURSOR CLICK COORDINATE
-FUNCTION click_event, wid=wid, msg=msg, data=data
-    if keyword_set(wid) then wset, wid
-    if keyword_set(msg) then print, msg
-    
-    if keyword_set(data) then cursor,xpos,ypos,/data,/down $
-    else cursor,xpos,ypos,/dev,/down
-    return, [xpos, ypos]
-END
-;------------------------------------------------------------------------
-;; SELECT y POS WITH CURSOR
-;; s2d (ny, 4), 4 : I,Q,U,V
-FUNCTION select_ypos_profile, s2d, wid=wid, ialog=ialog, msg_arr=msg_arr
-
-   ss = size(s2d) & ny = ss[1]
-   if ss[0] ne 2 then throw_error,'ndim of s2d != 2'
-   if ss[2] ne 4 then throw_error,'size of 2rd dimension != 4 (iquv)'
-
-   
-   if not keyword_set(wid) then wid=0
-   if not keyword_set(msg_arr) then msg_arr = ['click left button to select a x posiiton ...']
-   nclick = n_elements(msg_arr)
-
-   labels = ['I','Q','U','V']
-   colors = ['ffffff'x, '66ff00'x, '9900ff'x, '00ffff'x] ; 'bbggrr'x
-   ;colors = ['White', 'Red', 'Green', 'Yellow']
-
-   window, wid, xs=1200, ys=600
-   i = 0
-   mx = 0.05
-   yr = max(s2d[*,1:3])
-   yr = max(mx,yr)
-   yr = yr*[-1.,+1.]
-   plot, s2d[*,i]*mx, color=colors[i], linestyle=0, yr = yr
-   ;axis, yaxis=1, yr = [min(s2d[*,1:3]),max(s2d[*,1:3])]
-   for i=1,3 do begin
-      oplot, s2d[*,i], color=colors[i], linestyle=0
-   endfor
-
-   for i=0,3 do xyouts,100+50*i,100,labels[i],chars=2.5, color=colors[i], /device
-
-   xpos_arr = []
-   for kk=0,nclick-1 do begin
-      ;; click and compute x position
-      pos = click_event(msg=msg_arr[kk], /data)
-      xpos = fix(pos[0])
-
-      print, 'select xpos=', xpos
-      
-      xpos_arr = [xpos_arr,[xpos]]
-      oplot,[xpos], [s2d[xpos,0]*mx], color=colors[0], psym=5, thick=4
-   endfor
-
-
-
-   if nclick eq 1 then return, xpos_arr[0]
-   return, xpos_arr
-
-
-END
-
-;------------------------------------------------------------------------
-;; SELECT X POS WITH CURSOR
-;; s4 (npix_x, npix_y, 4), 4 : I,Q,U,V
-FUNCTION select_xpos, s4, pmax=pmax, bin=bin, wid=wid, ialog=ialog, islabel=islabel, msg_arr=msg_arr
-
-   if not keyword_set(wid) then wid=0
-   if not keyword_set(pmax) then pmax=0.05
-   if not keyword_set(bin) then bin=1
-   if not keyword_set(msg_arr) then msg_arr = ['click left button to select a x posiiton ...']
-   nclick = n_elements(msg_arr)
-   coms = ['I', 'Q', 'U', 'V']
-
-	ss = size(s4)
-   if not ss[0] eq 3 then throw_error, "ndim of s4 !=3"
-   if not ss[3] eq 4 then throw_error, "size of the 3rd dimension of s4 !=4"
-   nx0 = ss[1]
-   ny0 = ss[2]
-   ns0 = ss[3]
-   nx = nx0 / bin
-   ny = ny0 / bin
-   
-   dd = 2
-   window,wid,xs=nx*ns0+dd*(ns0-1),ys=ny+dd*2
-   ;; show I spectrum image
-   x0 = 0
-   x0s = [x0,0,0,0]
-   y0 = 0
-   i2d=congrid(s4[*,*,0],nx,ny)
-   if keyword_set(ialog) then tvscls,alog(i2d),x0,y0+dd $
-   else tvscls,i2d,x0,y0+dd,sgm=[-3,1]
-   if keyword_set(islabel) then xyouts,x0+10,ny-30,coms[0],chars=3,charthick=2,/dev
-   right_bounds = [x0 + nx,0,0,0]
-   ;; show Q, U, V spectrum image
-   for j=1,ns0-1 do begin
-		x0 = x0 + nx + dd
-		tvscls,congrid(s4[*,*,j],nx,ny),x0,y0+dd,vmin=-pmax,vmax=pmax
-		if keyword_set(islabel) then xyouts,x0+10,ny-30,coms[j],chars=3,charthick=2,/dev
-	   right_bounds[j] = x0 + nx
-      x0s[j] = x0
-   endfor
-
-   xpos_arr = []
-   for kk=0,nclick-1 do begin
-      ;; click and compute x position
-      pos = click_event(msg=msg_arr[kk])
-      xpos = pos[0]
-
-      bias = 0
-      for j=0,ns0-1 do begin
-         if right_bounds[j] gt xpos then break
-         bias = bias + (nx+dd)
-      endfor
-
-      xpos = xpos - bias
-      
-   ;;   print, j, xpos
-      for j=0, ns0-1 do begin
-         draw, (x0s[j]+xpos)*[1,1], [dd,dd+ny], color=150, thick=2
-      endfor
-      xpos = xpos*bin
-      print, 'select xpos=', xpos
-      
-      xpos_arr = [xpos_arr,[xpos]]
-   endfor
-
-   if nclick eq 1 then return, xpos_arr[0]
-   return, xpos_arr
-END
+;; UPDATE PROFILE PLOTS
 
 ;------------------------------------------------------------------------
 ;[bug not yet fixed]
 function sfunc_mmdst,cx,x
-   common mmadjust, pars, wds, wd, sdata, pdata
+   common mmadjust, pars, wds, wd, sdata, pdata, pars_anan
 
 	mm = update_mmdst(dst, telpos, x[0], x[1], x[2], x[3], x[4])
       s11 = UPDATE_S3(s0, mm) 
@@ -244,7 +100,7 @@ end
 
 ;------------------------------------------------------------------------
 PRO mmdst_event, ev
-   common mmadjust, pars, wds, wd, sdata, pdata
+   common mmadjust, pars, wds, wd, sdata, pdata, pars_anan
    common config, conf
    common wconfig, wid_profile
 
@@ -333,6 +189,26 @@ PRO mmdst_event, ev
 			val = widget_info(wd.Icrtk,/button_set)
          conf.sconf.corr_Icrtk = val
 		end
+      wd.Xpos: begin
+         ii = 0
+         s3d = reform(sdata.s4d[*,*,*,ii])
+         wid=18
+         showiquvr, s3d, pmax=pmax, bin=bin, wid=wid
+         while 1b do begin
+            xpos = SELECTX_IQUV(s3d, bin=bin, pmax=pmax, wid=wid, /isdraw, /change, button=button)
+            conf.xpos=xpos[0]
+            
+            pdata.s2d_origin = s3d[conf.xpos,*,*] ;; iquv at a single x position
+            mm = update_mmdst(sdata.dst[ii], pars_anan.xn, pars_anan.tn, pars_anan.xc, pars_anan.tc, pars_anan.sc)
+            pdata.s2d_anan = UPDATE_S3(pdata.s2d_origin, mm)
+            mm = update_mmdst(sdata.dst[0], pars.xn, pars.tn, pars.xc, pars.tc, pars.sc, th_vs=pars.th_vs)
+            s1 = UPDATE_S3(pdata.s2d_origin, mm)
+	         update_profile_plots, sdata.wl, s1, wid_profile, s0=pdata.s2d_origin, s2=pdata.s2d_anan
+
+            if button eq 'right' then break
+         endwhile
+         return
+      end
    	endcase
 	
 	mm = update_mmdst(sdata.dst[0], pars.xn, pars.tn, pars.xc, pars.tc, pars.sc, th_vs=pars.th_vs)
@@ -398,6 +274,27 @@ FUNCTION slider_widget,base, pars, conf_symfit
 	return, wd
 END
 ;------------------------------------------------------------------------
+; TEST
+PRO MMDST_ADJUST_TEST, read=read
+
+if keyword_set(read) then begin
+
+path='/tmp_mnt/home/kouui/idlpro/mmdst_adjust/He1083.20220110.mmdst_adjust.conf'
+pcal = mmdst_adjust(bin=1,path=path)
+
+endif else begin
+
+file = '/nwork/kouui/data-lvl1/dstpol/20220110.giant-prominence/spec/cal/sav.for-mmdst-adjust'
+file = file + '/step5.s.ar.sav'
+restore, file
+wl0 = 10830
+pcal = mmdst_adjust(s[*,*,0:3], dst, wl0, bin=1)
+
+endelse
+
+
+END
+;------------------------------------------------------------------------
 ;; MAIN PRCEDURE
 
 ;; trial@2021.01.23 10830
@@ -422,10 +319,10 @@ END
 ;; xc = -0.01423
 ;; tc = +0.00101
 
-FUNCTION mmdst_adjust, s, dst, wl0, bin=bin, sconf=sconf, path=path, xpos=xpos
-;PRO mmdst_adjust, path, 
+;FUNCTION mmdst_adjust, s, dst, wl0, bin=bin, sconf=sconf, path=path, xpos=xpos
+;PRO mmdst_adjust
 
-common mmadjust, pars, wds, wd, sdata, pdata
+common mmadjust, pars, wds, wd, sdata, pdata, pars_anan
 common config, conf
 common wconfig, wid_profile
 
@@ -435,7 +332,8 @@ common wconfig, wid_profile
 ;;-----------------------------------------------------
 ;; variables needed to be modified manually
 
-;path = '/tmp_mnt/home/kouui/idlpro/mmdst/He1083.20220110.mmdst_adjust.conf'
+path = '/tmp_mnt/home/kouui/idlpro/lib.mmdst_adjust/He1083.20220110.mmdst_adjust.conf'
+print, path
 ;UNDEFINE,path
 ;;-----------------------------------------------------
 ;; read configuration variables from txt
@@ -497,7 +395,7 @@ s4d    : sseq, $        ; fltarr, (nx,ny,ns,nf)
 dst    : dstseq, $      ; uintarr, (3,11nf)
 wl     : wl $          ; wavelength array
 }
-UNDEFINE,s & UNDEFINE,wl & UNDEFINE,ss
+UNDEFINE,wl & UNDEFINE,ss
 UNDEFINE,sseq & UNDEFINE,dstseq
 
 ;;-----------------------------------------------------
@@ -511,12 +409,11 @@ if keyword_set(xpos) then conf.xpos=xpos
 ;;-----------------------------------------------------
 ;; select islit1, islit2
 
-names = ['left bound of sunspot', 'right bound of sunspot']
-msg_arr = []
-for i=0,n_elements(names)-1 do msg_arr = [msg_arr,['click left button to select '+names[i]+' ...']]
-
 if (conf.sconf.islit1 eq -1) or (conf.sconf.islit2 eq -1) then begin
-   xpos2 = select_xpos(s3d, pmax=0.01, wid=6, bin=bin, /islabel, msg_arr=msg_arr)
+   names = ['left bound of sunspot', 'right bound of sunspot']
+   msg_arr = []
+   for i=0,n_elements(names)-1 do msg_arr = [msg_arr,['click left button to select '+names[i]+' ...']]
+   xpos2 = [0,0];select_xpos(s3d, pmax=0.01, wid=6, bin=bin, /islabel, msg_arr=msg_arr)
    if xpos2[0] > xpos2[1] then xpos2 = reverse(xpos2)
    conf.sconf.islit1 = xpos2[0] & conf.sconf.islit2 = xpos2[1]
 endif
@@ -524,7 +421,7 @@ UNDEFINE, names & UNDEFINE, msg_arr & UNDEFINE, i & UNDEFINE, xpos2
 if not (keyword_set(sconf) or keyword_set(path)) then wdelete, 6
 ;;-----------------------------------------------------
 ;; select xpos
-if conf.xpos eq -1 then conf.xpos = select_xpos(s3d, pmax=0.01, wid=7, bin=bin, /islabel)
+if conf.xpos eq -1 then conf.xpos = 0;select_xpos(s3d, pmax=0.01, wid=7, bin=bin, /islabel)
 s2d = s3d[conf.xpos,*,*] ;; iquv at a single x position
 if not (keyword_set(sconf) or keyword_set(path)) then wdelete, 7
 ;;-----------------------------------------------------
@@ -533,9 +430,8 @@ if (conf.sconf.iedgeL eq -1) or (conf.sconf.iedgeC eq -1) then begin
 names = ['edge of a polarmetric obsorption line', 'center of a polarmetric obsorption line']
 names = [names, ['edge of continuum','center of continuum']]
 msg_arr = []
-
 for i=0,n_elements(names)-1 do msg_arr = [msg_arr,['click left button to select '+names[i]+' ...']]
-xpos4 = select_ypos_profile(reform(s2d), wid=8, msg_arr=msg_arr)
+xpos4 = [0,0,0,0];select_ypos_profile(reform(s2d), wid=8, msg_arr=msg_arr)
 conf.sconf.iedgeL = xpos4[0]
 conf.sconf.icentL = xpos4[1]
 conf.sconf.iedgeC = xpos4[2]
@@ -585,9 +481,10 @@ base = WIDGET_BASE(title='MMDST_ADJUST', /column)
 wds = slider_widget(base, pars, conf.sconf)
 wd = {main_wd, $
    Icrtk: 0l, $
-	Auto:  0l, $	;
-   SFit:  0l, $ ;
-	Disp:	 0l, $	;
+	Auto:  0l, $
+   SFit:  0l, $
+	Disp:	 0l, $
+   Xpos:  0l, $
 	Exit:	 0l $
 	}
 b1 = widget_base(base, /row)
@@ -597,24 +494,13 @@ Widget_Control, wd.Icrtk, Set_Button=conf.sconf.corr_Icrtk
 wd.Auto = widget_button(b1, value="Auto", uvalue = "Auto", SENSITIVE = 0)
 wd.SFit = widget_button(b1, value="SFit", uvalue = "SFit", SENSITIVE = 0)
 wd.Disp = widget_button(b1, value="Disp", uvalue = "Disp", SENSITIVE = 0)
+wd.Xpos = widget_button(b1, value="Xpos", uvalue = "Xpos", SENSITIVE = 1)
 wd.Exit = widget_button(b1, value="Exit", uvalue = "Exit")
 
 widget_control, base, /realize
 ;;ret = SELECT_PROFILE_RANGE(wid_profile,wl)
 XMANAGER, 'mmdst', base
 
-return, {mmdst_adjust_struct, conf:conf, pars:pars, pars_init:pars_init}
+;return, {mmdst_adjust_struct, conf:conf, pars:pars, pars_init:pars_init}
 
 END
-
-
-PRO MMDST_ADJUST_TEST
-
-file = '/nwork/kouui/data-lvl1/dstpol/20220110.giant-prominence/spec/cal/sav.for-mmdst-adjust'
-file = file + '/step5.s.ar.sav'
-restore, file
-wl0 = 10830
-pcal = mmdst_adjust(s[*,*,0:3], dst, wl0, bin=1)
-
-END
-
