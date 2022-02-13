@@ -1,28 +1,10 @@
 ; LIBRARY FOR FITTING SYMMETRY Q/U/V PROFILE OF SUNSPOT
 ;
 ; HISTORY : 
-; 2021.02.13  U.K.  CREATED
+; 2021.02.13  U.K.  CREATED, WORKS
 
 ;; EXTERNAL DEPENDENCY
 @mmdst_lib
-
-;------------------------------------------------------------------------
-FUNCTION MINVAL, v1, v2
-
-    if v1 lt v2 then return, v1
-    return, v2
-END
-
-FUNCTION SWAP, v1, v2, descend=descend
-
-    if not keyword_set(descend) then begin
-        if v1 lt v2 then return, [v1,v2] $
-        else return, [v2,v1]
-    endif else begin
-        if v1 lt v2 then return, [v2,v1] $
-        else return, [v1,v2]
-    endelse
-END
 
 ;------------------------------------------------------------------------
 ;; FIND THE POSITION IN AN ARRAY 
@@ -207,7 +189,7 @@ FUNCTION MAKE_RESULT_ARRAY, spil, spic, xaq, target=target, zero_netV = zero_net
         arr[*,*,i,1,*] = 0.5*(spic[*,0:nph-1,i+1,*] + spic[*,nph+1:2*nph,i+1,*])
         if not keyword_set(zero_netV) then arr[*,*,i,1,*] -= rebin(arr[*,*,i,1,*],1,nph,1,1,nseq)
     endfor
-    if keyword_set(neglect_continuum) then arr[*,*,*,1,*] = 0
+    if keyword_set(neglect_continuum) then arr[*,*,0:1,1,*] = 0
 
     return, arr
 END
@@ -329,7 +311,7 @@ FUNCTION MPFIT_PARDST, conf_symfit, s4, dst3, parinit, parinfo, err, weight, nit
     weights = MAKE_WEIGHT_ARRAY(spils,xaq,wtQ=weight.wtQ,wtU=weight.wtU,wtV=weight.wtV,$
                 wtL=weight.wtL,wtC=weight.wtC,wt_AR=weight.wtAR,wt_QR=weight.wtQR)
     
-    if not keyword_set(niter) then niter = 20
+    if not keyword_set(niter) then niter=20
     if not keyword_set(quiet) then quiet=1b
 
     errs =  MAKE_ERROR_ARRAY(spils, err)
@@ -379,7 +361,7 @@ s4d[sconf.xaq:nx-1,*,*,0] = s[sconf.iyQ1:sconf.iyQ2-1,*,0:3]
 
 ;showiquvr, s[*,*,0:3]
 ;draw, (240+(2+nx)*2)*[1,1], [2,2+ny], color=150, thick=2, line=2
-showiquvr, reform(s4d)
+showiquvr, reform(s4d), wid=2
 draw, [0,3*2+nx*4], sconf.ixL1*[1,1], color=150, thick=2, line=2
 draw, [0,3*2+nx*4], sconf.ixL2*[1,1], color=150, thick=2, line=2
 draw, [0,3*2+nx*4], sconf.ixC1*[1,1], color=150, thick=2, line=2
@@ -389,7 +371,7 @@ pars_fit = MPFIT_PARDST(sconf, s4d, dst3, parinit, parinfo, sconf.error, weight,
 
 mm = update_mmdst(dst, pars_fit[0], pars_fit[1], pars_fit[2], pars_fit[3], pars_fit[4],th_vs=pars_fit[5])
 sr = UPDATE_S3(s[*,*,0:3],mm)
-showiquvr, sr, wid=2
+showiquvr, sr, wid=3
 
 print, pars_fit
 
